@@ -21,3 +21,11 @@ ok
 received from topic <<"testing.topic">> message <<"hello\r\n">>
 3>
 ```
+
+Todo
+----
+
+* Generate a Sid (session ID) - currently uses a single value.
+* Implement a callback mechanism for messages.
+* Handle unexpected messages by failing.
+* CT testing using a real Nats server.
