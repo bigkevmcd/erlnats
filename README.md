@@ -39,3 +39,5 @@ Todo
 * Implement a callback mechanism for messages.
 * Handle unexpected messages by failing.
 * CT testing using a real Nats server.
+* SSL connection (including custom ssl_options).
+* auth_token
