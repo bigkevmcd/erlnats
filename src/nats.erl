@@ -69,7 +69,6 @@ init([Opts]) ->
 
 handle_call({sub, Subject}, _From, #state{sock=Sock, state=connected}=State) ->
     gen_tcp:send(Sock, nats_proto:sub_request(Subject, "1")),
-    inet:setopts(Sock, [{active, once}]),
     {reply, ok, State};
 
 handle_call(_Msg, _From, State = #state{}) ->
@@ -93,21 +92,18 @@ handle_cast(_Msg, State) ->
 handle_info({tcp, Sock, Data}, #state{sock=Sock, state=connecting}=State) ->
     case parse_data(Data) of
         {info, _} ->
-            gen_tcp:send(State#state.sock, nats_proto:connect_response()),
-            inet:setopts(Sock, [{active, once}])
+            gen_tcp:send(State#state.sock, nats_proto:connect_response())
     end,
     {noreply, State#state{state=connected}};
 
 handle_info({tcp, Sock, Data}, #state{sock=Sock, state=connected}=State) ->
     case parse_data(Data) of
         ping ->
-            gen_tcp:send(State#state.sock, nats_proto:pong_response()),
-            inet:setopts(Sock, [{active, once}]);
+            gen_tcp:send(State#state.sock, nats_proto:pong_response());
         {msg, Subject, _Sid, _ReplyTo, Body} ->
-            io:format("received from topic ~p message ~p~n", [Subject, Body]),
-            inet:setopts(Sock, [{active, once}]);
+            io:format("received from topic ~p message ~p~n", [Subject, Body]);
         _ ->
-            inet:setopts(Sock, [{active, once}])
+            io:format("received unknown data from server ~p~n", [Data])
     end,
     {noreply, State};
 
@@ -147,14 +143,13 @@ init_state(Opts) ->
 connect(#state{host=Host, port=Port}=State) ->
     case connect_socket(Host, Port) of
         {ok, Sock} ->
-           inet:setopts(Sock, [{active, once}]),
            State#state{sock=Sock};
         Err ->
             Err
     end.
 
 connect_socket(Host, Port) ->
-    SockOpts = [binary, {active, false}, {keepalive, true}, {nodelay, true}],
+    SockOpts = [binary, {active, true}, {keepalive, true}, {nodelay, true}],
     gen_tcp:connect(Host, Port, SockOpts).
 
 parse_data(Data) ->
