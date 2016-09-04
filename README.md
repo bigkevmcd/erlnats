@@ -22,6 +22,16 @@ received from topic <<"testing.topic">> message <<"hello\r\n">>
 3>
 ```
 
+To authenticate, pass user, pass as options.
+
+```erlang
+1> {ok, C} = nats:start_link([{user, "username"}, {pass, "password"}]).
+{ok,<0.105.0>}
+2> nats:subscribe(C, "testing.topic").
+ok
+```
+
+
 Todo
 ----
 

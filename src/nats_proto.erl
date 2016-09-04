@@ -1,11 +1,13 @@
 -module(nats_proto).
 
 %% API exports
--export([connect_response/0, sub_request/2, pong_response/0]).
+-export([connect_response/2, sub_request/2, pong_response/0]).
 
--spec connect_response() -> [binary()].
-connect_response() ->
-    [<<"CONNECT ">>, jsx:encode(connect()), <<" \r\n">>].
+-spec connect_response(binary(), binary()) -> [binary()].
+connect_response(User, Pass) when is_list(User) and is_list(Pass) ->
+    connect_response(list_to_binary(User), list_to_binary(Pass));
+connect_response(User, Pass) ->
+    [<<"CONNECT ">>, jsx:encode(connect(User, Pass)), <<" \r\n">>].
 
 -spec pong_response() -> [binary()].
 pong_response() ->
@@ -21,14 +23,17 @@ sub_request(Subject, Sid) ->
 %% Internal functions
 %%====================================================================
 
+connect(undefined, undefined) ->
+    connect();
+connect(User, Pass) when is_binary(User) and is_binary(Pass) ->
+    connect() ++ [{user, User}, {pass, Pass}].
+
 connect() ->
     [
       {verbose, false},
       {pedantic, false},
       {ssl_required, false},
   %%    {auth_token, }
-  %%    {user, }
-  %%    {pass, }
       {name, <<"">>},
       {lang, <<"erlang">>},
       {version, <<"0.0.1">>}
@@ -39,6 +44,32 @@ connect() ->
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+
+connect_test() ->
+    Response = connect(),
+    Expected = [
+      {verbose, false},
+      {pedantic, false},
+      {ssl_required, false},
+      {name, <<"">>},
+      {lang, <<"erlang">>},
+      {version, <<"0.0.1">>}
+    ],
+    ?assertEqual(Expected, Response).
+
+connect_with_user_and_pass_test() ->
+    Response = connect(<<"testing">>, <<"password">>),
+    Expected = [
+      {verbose, false},
+      {pedantic, false},
+      {ssl_required, false},
+      {name, <<"">>},
+      {lang, <<"erlang">>},
+      {version, <<"0.0.1">>},
+      {user, <<"testing">>},
+      {pass, <<"password">>}
+    ],
+    ?assertEqual(Expected, Response).
 
 connect_response_test() ->
     Response = connect_response(),
