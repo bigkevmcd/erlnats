@@ -8,7 +8,7 @@
 -export([init/1, handle_call/3, handle_cast/2,
          handle_info/2, terminate/2, code_change/3]).
 
--record(state, {host, port, sock, state}).
+-record(state, {host, port, sock, state, user, pass}).
 
 %%====================================================================
 %% API functions
@@ -92,7 +92,7 @@ handle_cast(_Msg, State) ->
 handle_info({tcp, Sock, Data}, #state{sock=Sock, state=connecting}=State) ->
     case parse_data(Data) of
         {info, _} ->
-            gen_tcp:send(State#state.sock, nats_proto:connect_response())
+            gen_tcp:send(State#state.sock, nats_proto:connect_response(State#state.user, State#state.pass))
     end,
     {noreply, State#state{state=connected}};
 
@@ -137,7 +137,9 @@ init_state(Opts) ->
     #state{
         host = Host,
         port = Port,
-        state = connecting
+        state = connecting,
+        user = proplists:get_value(user, Opts),
+        pass = proplists:get_value(pass, Opts)
     }.
 
 connect(#state{host=Host, port=Port}=State) ->
@@ -180,12 +182,19 @@ parse_info(Raw) ->
 init_state_test() ->
     State = init_state([]),
     ?assertEqual(State#state.host, "localhost"),
-    ?assertEqual(State#state.port, 4222).
+    ?assertEqual(State#state.port, 4222),
+    ?assertEqual(State#state.user, undefined),
+    ?assertEqual(State#state.pass, undefined).
 
 init_state_with_url_test() ->
     State = init_state([{url, "nats://nats.example.com:6222"}]),
     ?assertEqual(State#state.host, "nats.example.com"),
     ?assertEqual(State#state.port, 6222).
+
+init_state_with_user_and_pass_test() ->
+    State = init_state([{user, "testing"}, {pass, "password"}]),
+    ?assertEqual(State#state.user, "testing"),
+    ?assertEqual(State#state.pass, "password").
 
 parse_data_with_info_test() ->
     InfoMsg = <<"INFO {\"server_id\":\"1e7z\",\"version\":\"0.6.6\",\"go\":\"go1.4.2\",\"host\":\"0.0.0.0\",\"port\":4222,\"auth_required\":false,\"ssl_required\":false,\"max_payload\":1048576} \r\n">>,
